@@ -74,6 +74,7 @@ public class CampaignController {
         signatureDao.insert(signature);
 
         HttpResponse response = redirect("/campaign/" + form.getCampaignId(), SEE_OTHER);
+
         response.setFlash(new Flash<>("ご賛同ありがとうございました！"));
         return response;
     }
@@ -110,11 +111,18 @@ public class CampaignController {
         model.setStatement(processor.markdownToHtml(form.getStatement()));
         model.setCreateUserId(principal.getUserId());
 
+        model.setTitle(form.getTitle());
+        model.setGoal(Long.parseLong(form.getGoal()));
+
         CampaignDao campaignDao = domaProvider.getDao(CampaignDao.class);
         // TODO Databaseに登録する
 
+        campaignDao.insert(model);
+
+
+
         HttpResponse response = redirect("/campaign/" + model.getCampaignId(), SEE_OTHER);
-        response.setFlash(new Flash<>(""/* TODO: キャンペーンが新規作成できた旨のメッセージを生成する */));
+        response.setFlash(new Flash<>("作成成功！"/* TODO: キャンペーンが新規作成できた旨のメッセージを生成する */));
 
         return response;
     }
