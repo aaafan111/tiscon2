@@ -57,6 +57,13 @@ GithubのWatch機能を使用すれば、プログラムの修正があった場
 各リポジトリページの右上にある「Watch」ボタンを押下し、プルダウンからWatchingを選択してください。  
 そうするとWatch機能が有効になります。  
 
+
+## 更新の取り込み方
+更新の通知を受け取ったら、https://github.com/tiscon/tiscon2 からForkしてきた自身の環境へ更新内容を取り込みます。  
+
+更新の取り込み方は[更新手引き](doc/UpdateGuide.md)を参照してください。
+
+
 <br>
 
 # 参考
@@ -73,7 +80,7 @@ tiscon2
 
     ├ java
 
-    │└ db.migration       #DBスキーマ、事前登録データの定義情報
+    │├ db.migration       #DBスキーマ、事前登録データの定義情報
 
     │└ net.unit8.sigcolle
 
@@ -95,7 +102,7 @@ tiscon2
 
       ├ META-INF                   #アプリケーションが公開する静的リソース
 
-　　　│└ net.unit8.sigcolle.dao   #Daoに対応するSQLファイル
+      ├ net.unit8.sigcolle.dao   #Daoに対応するSQLファイル
 
       ├ public                     #アプリケーションが公開する静的リソース
 
@@ -108,7 +115,7 @@ tiscon2
 ## 使用技術
 ### Enkan
 本アプリケーションはマイクロフレームワーク『Enkan』を使用して構築されています。  
-Enaknについて学びたい方は、以下を参考にしてください。
+Enkanについて学びたい方は、以下を参考にしてください。
 - [Getting Started(スタートガイド)](https://enkan.github.io/getting-started.html)
 - [マイクロフレームワークEnkan(とKotowari)ではじめるREPL駆動開発](http://www.slideshare.net/kawasima/enkankotowarirepl)
 

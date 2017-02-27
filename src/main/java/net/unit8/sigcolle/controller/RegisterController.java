@@ -10,10 +10,9 @@ import enkan.data.Session;
 import kotowari.component.TemplateEngine;
 import net.unit8.sigcolle.auth.LoginUserPrincipal;
 import net.unit8.sigcolle.dao.UserDao;
-import net.unit8.sigcolle.form.UserForm;
+import net.unit8.sigcolle.form.RegisterForm;
 import net.unit8.sigcolle.model.User;
 
-import static enkan.util.BeanBuilder.builder;
 import static enkan.util.HttpResponseUtils.RedirectStatusCode.SEE_OTHER;
 import static enkan.util.HttpResponseUtils.redirect;
 
@@ -31,22 +30,24 @@ public class RegisterController {
 
     /**
      * ユーザー登録画面表示.
+     *
      * @return HttpResponse
      */
     public HttpResponse index() {
-        return templateEngine.render("register", "user", new UserForm());
+        return templateEngine.render("user/register", "user", new RegisterForm());
     }
 
     /**
      * ユーザー登録処理.
+     *
      * @param form 画面入力されたユーザー情報
      * @return HttpResponse
      */
     @Transactional
-    public HttpResponse register(UserForm form) {
+    public HttpResponse register(RegisterForm form) {
 
         if (form.hasErrors()) {
-            return templateEngine.render("register", "user", form);
+            return templateEngine.render("user/register", "user", form);
         }
 
         UserDao userDao = domaProvider.getDao(UserDao.class);
@@ -54,17 +55,17 @@ public class RegisterController {
         // メールアドレス重複チェック
         if (userDao.countByEmail(form.getEmail()) != 0) {
             form.setErrors(Multimap.of("email", EMAIL_ALREADY_EXISTS));
-            return templateEngine.render("register",
-                    "user", form
+            return templateEngine.render("user/register",
+                                         "user", form
             );
         }
 
-        User user = builder(new User())
-                .set(User::setLastName, form.getLastName())
-                .set(User::setFirstName, form.getFirstName())
-                .set(User::setEmail, form.getEmail())
-                .set(User::setPass, form.getPass())
-                .build();
+        User user = new User();
+        user.setLastName(form.getLastName());
+        user.setFirstName(form.getFirstName());
+        user.setEmail(form.getEmail());
+        user.setPass(form.getPass());
+
         userDao.insert(user);
 
         Session session = new Session();
@@ -74,8 +75,8 @@ public class RegisterController {
                 new LoginUserPrincipal(loginUser.getUserId(), loginUser.getLastName() + " " + loginUser.getFirstName())
         );
 
-        return builder(redirect("/", SEE_OTHER))
-                .set(HttpResponse::setSession, session)
-                .build();
+        HttpResponse response = redirect("/", SEE_OTHER);
+        response.setSession(session);
+        return response;
     }
 }

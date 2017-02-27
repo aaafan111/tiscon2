@@ -6,15 +6,21 @@ import javax.transaction.Transactional;
 import enkan.component.doma2.DomaProvider;
 import enkan.data.Flash;
 import enkan.data.HttpResponse;
+import enkan.data.Session;
 import kotowari.component.TemplateEngine;
+import net.unit8.sigcolle.auth.LoginUserPrincipal;
 import net.unit8.sigcolle.dao.CampaignDao;
 import net.unit8.sigcolle.dao.SignatureDao;
+import net.unit8.sigcolle.dao.UserDao;
+import net.unit8.sigcolle.form.CampaignCreateForm;
 import net.unit8.sigcolle.form.CampaignForm;
 import net.unit8.sigcolle.form.SignatureForm;
-import net.unit8.sigcolle.model.UserCampaign;
+import net.unit8.sigcolle.model.Campaign;
 import net.unit8.sigcolle.model.Signature;
+import net.unit8.sigcolle.model.User;
+import org.pegdown.Extensions;
+import org.pegdown.PegDownProcessor;
 
-import static enkan.util.BeanBuilder.builder;
 import static enkan.util.HttpResponseUtils.RedirectStatusCode.SEE_OTHER;
 import static enkan.util.HttpResponseUtils.redirect;
 import static enkan.util.ThreadingUtils.some;
@@ -29,32 +35,18 @@ public class CampaignController {
     @Inject
     private DomaProvider domaProvider;
 
-    private HttpResponse showCampaign(Long campaignId, SignatureForm signature, String message) {
-        CampaignDao campaignDao = domaProvider.getDao(CampaignDao.class);
-        UserCampaign campaign = campaignDao.selectById(campaignId);
-
-        SignatureDao signatureDao = domaProvider.getDao(SignatureDao.class);
-        int signatureCount = signatureDao.countByCampaignId(campaignId);
-
-        return templateEngine.render("campaign",
-                "campaign", campaign,
-                "signatureCount", signatureCount,
-                "signature", signature,
-                "message", message
-        );
-    }
-
     /**
      * キャンペーン詳細画面表示.
-     * @param form URLパラメータ
+     *
+     * @param form  URLパラメータ
      * @param flash flash scope session
      * @return HttpResponse
      */
     public HttpResponse index(CampaignForm form, Flash flash) {
         if (form.hasErrors()) {
-            return builder(HttpResponse.of("Invalid"))
-                    .set(HttpResponse::setStatus, 400)
-                    .build();
+            HttpResponse response = HttpResponse.of("Invalid");
+            response.setStatus(400);
+            return response;
         }
 
         return showCampaign(form.getCampaignIdLong(),
@@ -64,6 +56,7 @@ public class CampaignController {
 
     /**
      * 署名の追加処理.
+     *
      * @param form 画面入力された署名情報.
      * @return HttpResponse
      */
@@ -72,33 +65,88 @@ public class CampaignController {
         if (form.hasErrors()) {
             return showCampaign(form.getCampaignIdLong(), form, null);
         }
-        Signature signature = builder(new Signature())
-                .set(Signature::setCampaignId, form.getCampaignIdLong())
-                .set(Signature::setName, form.getName())
-                .set(Signature::setSignatureComment, form.getSignatureComment())
-                .build();
+        Signature signature = new Signature();
+        signature.setCampaignId(form.getCampaignIdLong());
+        signature.setName(form.getName());
+        signature.setSignatureComment(form.getSignatureComment());
+
         SignatureDao signatureDao = domaProvider.getDao(SignatureDao.class);
         signatureDao.insert(signature);
 
-        return builder(redirect("/campaign/" + form.getCampaignId(), SEE_OTHER))
-                .set(HttpResponse::setFlash, new Flash("ご賛同ありがとうございました！"))
-                .build();
+        HttpResponse response = redirect("/campaign/" + form.getCampaignId(), SEE_OTHER);
+        response.setFlash(new Flash<>("ご賛同ありがとうございました！"));
+        return response;
     }
 
     /**
      * 新規キャンペーン作成画面表示.
+     *
      * @return HttpResponse
      */
-    public HttpResponse createForm() {
-        return templateEngine.render("signature/new");
+    public HttpResponse newCampaign() {
+        return templateEngine.render("campaign/new", "form", new CampaignCreateForm());
     }
 
     /**
-     * 新規キャンペーン作成処理.
-     * @return HttpResponse
+     * 新規キャンペーンを作成します.
+     * ---------------------------------------
+     * FIXME このメソッドは作成途中です.
+     *
+     * @param form    入力フォーム
+     * @param session ログインしているユーザsession
      */
-    public HttpResponse create() {
-        // TODO: create campaign
-        return builder(redirect("/", SEE_OTHER)).build();
+    @Transactional
+    public HttpResponse create(CampaignCreateForm form,
+                               Session session) {
+        if (form.hasErrors()) {
+            return templateEngine.render("campaign/new", "form", form);
+        }
+        LoginUserPrincipal principal = (LoginUserPrincipal) session.get("principal");
+
+        PegDownProcessor processor = new PegDownProcessor(Extensions.ALL);
+
+        // TODO タイトル, 目標人数を登録する
+        Campaign model = new Campaign();
+        model.setStatement(processor.markdownToHtml(form.getStatement()));
+        model.setCreateUserId(principal.getUserId());
+
+        CampaignDao campaignDao = domaProvider.getDao(CampaignDao.class);
+        // TODO Databaseに登録する
+
+        HttpResponse response = redirect("/campaign/" + model.getCampaignId(), SEE_OTHER);
+        response.setFlash(new Flash<>(""/* TODO: キャンペーンが新規作成できた旨のメッセージを生成する */));
+
+        return response;
+    }
+
+    /**
+     * ログインユーザの作成したキャンペーン一覧を表示します.
+     * ---------------------------------------
+     * FIXME このメソッドは作成途中です.
+     *
+     * @param session ログインしているユーザsession
+     */
+    public HttpResponse listCampaigns(Session session) {
+        throw new UnsupportedOperationException("実装してください !!");
+    }
+
+    private HttpResponse showCampaign(Long campaignId,
+                                      SignatureForm form,
+                                      String message) {
+        CampaignDao campaignDao = domaProvider.getDao(CampaignDao.class);
+        Campaign campaign = campaignDao.selectById(campaignId);
+        UserDao userDao = domaProvider.getDao(UserDao.class);
+        User user = userDao.selectByUserId(campaign.getCreateUserId());
+
+        SignatureDao signatureDao = domaProvider.getDao(SignatureDao.class);
+        int signatureCount = signatureDao.countByCampaignId(campaignId);
+
+        return templateEngine.render("campaign/index",
+                "campaign", campaign,
+                "user", user,
+                "signatureCount", signatureCount,
+                "signature", form,
+                "message", message
+        );
     }
 }

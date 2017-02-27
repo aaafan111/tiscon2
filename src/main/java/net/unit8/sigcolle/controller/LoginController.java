@@ -14,7 +14,6 @@ import net.unit8.sigcolle.form.LoginForm;
 import net.unit8.sigcolle.model.User;
 import org.seasar.doma.jdbc.NoResultException;
 
-import static enkan.util.BeanBuilder.builder;
 import static enkan.util.HttpResponseUtils.RedirectStatusCode.SEE_OTHER;
 import static enkan.util.HttpResponseUtils.redirect;
 
@@ -32,40 +31,44 @@ public class LoginController {
 
     /**
      * ログイン画面の初期表示.
+     *
      * @return HttpResponse
      */
     @Transactional
     public HttpResponse index() {
-        return templateEngine.render("login", "login", new LoginForm());
+        return templateEngine.render("login/login", "login", new LoginForm());
     }
 
     /**
      * ログイン処理.
+     *
      * @param form 画面入力されたform情報
      * @return HttpResponse
      */
     @Transactional
     public HttpResponse login(LoginForm form) {
+        if (form.hasErrors()) {
+            return templateEngine.render("login/login", "login", form);
+        }
 
         UserDao userDao = domaProvider.getDao(UserDao.class);
         User user;
-        Multimap errors = Multimap.empty();
 
         // メールアドレス存在チェック
         try {
             user = userDao.selectByEmail(form.getEmail());
         } catch (NoResultException e) {
             form.setErrors(Multimap.of("error", INVALID_USERNAME_OR_PASSWORD));
-            return templateEngine.render("login",
-                    "login", form
+            return templateEngine.render("login/login",
+                                         "login", form
             );
         }
 
         // パスワードチェック
         if (!form.getPass().equals(user.getPass())) {
             form.setErrors(Multimap.of("error", INVALID_USERNAME_OR_PASSWORD));
-            return templateEngine.render("login",
-                    "login", form
+            return templateEngine.render("login/login",
+                                         "login", form
             );
         }
         Session session = new Session();
@@ -74,9 +77,9 @@ public class LoginController {
                 new LoginUserPrincipal(user.getUserId(), user.getLastName() + " " + user.getFirstName())
         );
 
-        return builder(redirect("/", SEE_OTHER))
-                .set(HttpResponse::setSession, session)
-                .build();
+        HttpResponse response = redirect("/", SEE_OTHER);
+        response.setSession(session);
+        return response;
     }
 
     /**
@@ -87,8 +90,8 @@ public class LoginController {
     @Transactional
     public HttpResponse logout(Session session) {
         session.clear();
-        return builder(redirect("/", SEE_OTHER))
-                .set(HttpResponse::setSession, session)
-                .build();
+        HttpResponse response = redirect("/", SEE_OTHER);
+        response.setSession(session);
+        return response;
     }
 }
