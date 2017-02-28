@@ -135,7 +135,13 @@ public class CampaignController {
      * @param session ログインしているユーザsession
      */
     public HttpResponse listCampaigns(Session session) {
-        throw new UnsupportedOperationException("実装してください !!");
+        /* throw new UnsupportedOperationException("実装してください !!"); */
+        CampaignDao campaignDao = domaProvider.getDao(CampaignDao.class);
+        LoginUserPrincipal principal = (LoginUserPrincipal) session.get("principal");
+//        campaignDao.selectByUserId(principal.getUserId());
+
+        return templateEngine.render("index", "campaigns", campaignDao.selectbyUserId(principal.getUserId()));
+
     }
 
     private HttpResponse showCampaign(Long campaignId,
