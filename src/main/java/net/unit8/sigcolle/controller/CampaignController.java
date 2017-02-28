@@ -61,7 +61,7 @@ public class CampaignController {
      * @return HttpResponse
      */
     @Transactional
-    public HttpResponse sign(SignatureForm form) {
+    public HttpResponse sign(SignatureForm form, Session session) {
         if (form.hasErrors()) {
             return showCampaign(form.getCampaignIdLong(), form, null);
         }
@@ -71,13 +71,35 @@ public class CampaignController {
         signature.setSignatureComment(form.getSignatureComment());
 
         SignatureDao signatureDao = domaProvider.getDao(SignatureDao.class);
+
+
+//        Session session;
+        LoginUserPrincipal principal = (LoginUserPrincipal) session.get("principal");
+
+        CampaignDao campaignDao = domaProvider.getDao(CampaignDao.class);
+        Campaign campaign = campaignDao.selectById(form.getCampaignIdLong());
+
+
+        if(campaign.getCreateUserId().equals(principal.getUserId())){
+            //登録しない
+            //自分のキャンペーンが登録できません
+            HttpResponse response = redirect("/campaign/" + form.getCampaignId(), SEE_OTHER);
+            response.setFlash(new Flash<>("自分のキャンペーンは賛同できません！"));
+            return response;
+        }
+
+
         signatureDao.insert(signature);
 
+        // 登録する
+        // ごさんどうありがとう
         HttpResponse response = redirect("/campaign/" + form.getCampaignId(), SEE_OTHER);
-
         response.setFlash(new Flash<>("ご賛同ありがとうございました！"));
         return response;
     }
+
+
+
 
     /**
      * 新規キャンペーン作成画面表示.
