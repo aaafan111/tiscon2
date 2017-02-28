@@ -2,6 +2,7 @@ package net.unit8.sigcolle.controller;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import java.util.List;
 
 import enkan.component.doma2.DomaProvider;
 import enkan.data.Flash;
@@ -78,6 +79,19 @@ public class CampaignController {
 
         CampaignDao campaignDao = domaProvider.getDao(CampaignDao.class);
         Campaign campaign = campaignDao.selectById(form.getCampaignIdLong());
+
+        List<Signature> signature_list = signatureDao.selectAllByCampaignId(form.getCampaignIdLong());
+
+
+        for(Signature data:signature_list){
+            if(form.getName().equals(data.getName())){
+                //賛同できません
+                HttpResponse response = redirect("/campaign/" + form.getCampaignId(), SEE_OTHER);
+                response.setFlash(new Flash<>("一度賛同したキャンペーンには賛同できません！"));
+                return response;
+            }
+        }
+
 
 
         if(campaign.getCreateUserId().equals(principal.getUserId())){
