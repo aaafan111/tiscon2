@@ -29,7 +29,7 @@ public class V5__InsertCampaign implements JdbcMigration {
                             "- フリーWi-Fiを使えるスポットを増やします。\n" +
                             "- PC完備の研修室を作ります。\n"
             ));
-            stmt.setLong(4, 1000L);
+            stmt.setLong(4, 5L);
             stmt.setLong(5, 0L);
             stmt.executeUpdate();
             connection.commit();
